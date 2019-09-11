@@ -1,3 +1,3 @@
 # wow_plugins
 
-## Just clone it into ___classic___ folder
+## Just clone it into \_classic\_ folder
