@@ -1,14 +1,8 @@
-WoW.mfil
-Cache
-GPUCache
-Logs
-UTILS
-WTF
-.flavor.info
-BlizzardError.exe
-DBGHELP.DLL
-GFSDK_Aftermath_Lib.x64.dll
-World of Warcraft Launcher.exe
-Wow.exe
-World of Warcraft.app
-WoW.mfil
+# Ignore everything
+*
+
+# except
+!Fonts
+!Interface/AddOns
+!.gitignore
+!README.md
