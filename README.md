@@ -10,3 +10,11 @@
 ### QuickCompare
 
 装备比较插件
+
+### HandyNotes
+
+NPC位置提示
+
+### AttackTimer
+
+近战武器攻击条
