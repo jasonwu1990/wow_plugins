@@ -2,7 +2,11 @@
 *
 
 # except
-!Fonts
-!Interface/AddOns
+!Fonts/**
+!Interface/
+!Interface/**/*
 !.gitignore
 !README.md
+
+# Ignore macOS
+**/.DS_Store
