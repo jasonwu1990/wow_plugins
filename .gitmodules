@@ -1,0 +1,3 @@
+[submodule "Interface/AddOns/QuestieDev"]
+	path = Interface/AddOns/QuestieDev
+	url = https://github.com/AeroScripts/QuestieDev
