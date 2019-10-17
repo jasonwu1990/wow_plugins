@@ -1,45 +1,64 @@
-local name, nodes = ...
+local name, data = ...
 
 local HandyNotes = LibStub("AceAddon-3.0"):GetAddon("HandyNotes", true)
 if not HandyNotes then return end
+
+local Addon = LibStub("AceAddon-3.0"):NewAddon("HandyNotes_NPCs (Classic)", "AceConsole-3.0", "AceEvent-3.0")
+local Search, AltRecipes -- Modules
 local L = LibStub("AceLocale-3.0"):GetLocale("HandyNotes_NPCs (Classic)")
-local iconDefault = "Interface\\MINIMAP\\TRACKING\\FlightMaster"
+local LibQTip = LibStub('LibQTip-1.0')
+
+local iconDefault = "Interface\\MINIMAP\\TRACKING\\FlightMaster" -- Remove this later or something
+
+local nodes = data["nodes"]
 
 local icons = {
 	flightmasters = "Interface\\MINIMAP\\TRACKING\\FlightMaster",
 	flightmastersUndiscovered = "Interface\\Addons\\HandyNotes_NPCs (Classic)\\flightmaster_undiscovered.tga",
 	auctioneers = "Interface\\MINIMAP\\TRACKING\\Auctioneer",
 	bankers = "Interface\\MINIMAP\\TRACKING\\Banker",
-	guildmasters = "Interface\\MINIMAP\\TRACKING\\POIArrow", -- FIX ME
+	guildmasters = "Interface\\MINIMAP\\TRACKING\\POIArrow", -- TODO: Find a better icon
 	innkeepers = "Interface\\MINIMAP\\TRACKING\\Innkeeper",
 	mailboxes = "Interface\\MINIMAP\\TRACKING\\Mailbox",
 	repair = "Interface\\MINIMAP\\TRACKING\\Repair",
-	spirithealers = "Interface\\MINIMAP\\TRACKING\\Focus", -- FIX ME
+	spirithealers = "Interface\\MINIMAP\\TRACKING\\Focus", -- TODO: Find a better icon
 	stablemasters = "Interface\\MINIMAP\\TRACKING\\StableMaster",
 	trainers = "Interface\\MINIMAP\\TRACKING\\Profession",
 	vendors = "Interface\\MINIMAP\\TRACKING\\Food",
 	classTrainer = "Interface\\MINIMAP\\TRACKING\\Class",
-	ammovendor = "Interface\\MINIMAP\\TRACKING\\Ammunition",
-	reagentvendor = "Interface\\MINIMAP\\TRACKING\\Reagents",
-	poisonvendor = "Interface\\MINIMAP\\TRACKING\\Poisons",
+	ammo = "Interface\\MINIMAP\\TRACKING\\Ammunition",
+	reagent = "Interface\\MINIMAP\\TRACKING\\Reagents",
+	poison = "Interface\\MINIMAP\\TRACKING\\Poisons",
 	primaryProfession = "Interface\\MINIMAP\\TRACKING\\Profession", -- Just in case I want seperate icons later
 	secondaryProfession = "Interface\\MINIMAP\\TRACKING\\Profession", -- Same
 	rares = "Interface\\MINIMAP\\Minimap_skull_normal",
+	alchemy = "Interface\\ICONS\\Trade_Alchemy",
+	blacksmithing = "Interface\\ICONS\\Trade_BlackSmithing",
+	cooking = "Interface\\ICONS\\inv_misc_food_15",
+	enchanting = "Interface\\ICONS\\Trade_Engraving",
+	engineering = "Interface\\ICONS\\Trade_Engineering",
+	first_aid = "Interface\\ICONS\\spell_holy_sealofsacrifice",
+	fishing = "Interface\\ICONS\\Trade_Fishing",
+	herbalism = "Interface\\ICONS\\Trade_Herbalism",
+	leatherworking = "Interface\\ICONS\\Trade_LeatherWorking",
+	mining = "Interface\\ICONS\\Trade_Mining",
+	skinning = "Interface\\ICONS\\inv_misc_pelt_wolf_01",
+	tailoring = "Interface\\ICONS\\Trade_Tailoring",
 }
 
 local PROFESSIONS = { }
-PROFESSIONS[L["Alchemy"]] = true
-PROFESSIONS[L["Blacksmithing"]] = true
-PROFESSIONS[L["Enchanting"]] = true
-PROFESSIONS[L["Engineering"]] = true
-PROFESSIONS[L["Leatherworking"]] = true
-PROFESSIONS[L["Tailoring"]] = true
-PROFESSIONS[L["Herbalism"]] = true
-PROFESSIONS[L["Mining"]] = true
-PROFESSIONS[L["Skinning"]] = true
-PROFESSIONS[L["Cooking"]] = true
-PROFESSIONS[L["First Aid"]] = true
-PROFESSIONS[L["Fishing"]] = true
+PROFESSIONS[L["Alchemy"]] = "Alchemy"
+PROFESSIONS[L["Blacksmithing"]] = "Blacksmithing"
+PROFESSIONS[L["Enchanting"]] = "Enchanting"
+PROFESSIONS[L["Engineering"]] = "Engineering"
+PROFESSIONS[L["Leatherworking"]] = "Leatherworking"
+PROFESSIONS[L["Tailoring"]] = "Tailoring"
+PROFESSIONS[L["Herbalism"]] = "Herbalism"
+PROFESSIONS[L["Mining"]] = "Mining"
+PROFESSIONS[L["Skinning"]] = "Skinning"
+PROFESSIONS[L["Cooking"]] = "Cooking"
+PROFESSIONS[L["First Aid"]] = "First Aid"
+PROFESSIONS[L["Fishing"]] = "Fishing"
 
 local db, learned
 local _, class, faction
@@ -47,34 +66,63 @@ local professions = { }
 
 local pluginHandler = { }
 function pluginHandler:OnEnter(uiMapId, coord)
-    local nodeData = nil
-	-- GET RID OF THIS JUNK
-    --if (not nodes[mapFile][coord]) then return end
-	if (nodes[uiMapId] and nodes[uiMapId][coord]) then
-	 nodeData = nodes[uiMapId][coord]
-	end
-	
-	if (not nodeData) then
-		--print('No node data for', uiMapId, coord)
+	local nodeData = nodes[uiMapId][coord]
+	--(nodeData.category == "vendors" or nodeData.category == "repair")
+	if db.showVendorData and nodeData["npcID"] and data["vendors"][nodeData["npcID"]] then
+		local tooltip = LibQTip:Acquire("HandyNotes_NPCs", 2, "LEFT", "RIGHT")
+		self.tooltip = tooltip
+		lineNumber = 1
+		tooltip:AddHeader(nodeData.name)
+		tooltip:SetLineTextColor(1, 0, 0.6, 0.1)
+		tooltip:AddSeparator()
+		lineNumber = lineNumber + 2
+		if data["vendors"][nodeData["npcID"]] then
+			for item in data["vendors"][nodeData["npcID"]]:gmatch("([^,]+)") do
+				item = tonumber(item)
+				if data["items"][item] then
+					local icon = 'Interface\\ICONS\\' .. data["items"][item].icon
+					local itemColor = ITEM_QUALITY_COLORS[data["items"][item].quality]
+					-- TODO Add default icon and color just in case we don't have them
+					tooltip:AddLine("|T".. icon ..":0|t" .. data["items"][item].name, GetCoinTextureString(data["items"][item].buyPrice))
+					tooltip:SetCellTextColor(lineNumber, 1, itemColor.r, itemColor.g, itemColor.b)
+					lineNumber = lineNumber + 1
+				end
+			end
+		end
+		tooltip:SmartAnchorTo(self)
+		tooltip:Show()
+	else
+		local tooltip = self:GetParent() == WorldMapButton and WorldMapTooltip or GameTooltip
+		if ( self:GetCenter() > UIParent:GetCenter() ) then -- compare X coordinate
+			tooltip:SetOwner(self, "ANCHOR_LEFT")
+		else
+			tooltip:SetOwner(self, "ANCHOR_RIGHT")
+		end
+
+		if (not nodeData.name) then return end
+		tooltip:AddLine(nodeData.name)
+		if (nodeData.description) then
+			tooltip:AddLine(nodeData.description, 0, 0.6, 0.1)
+		end
+		if nodeData.subcategory == "weaponmaster" then
+			if nodeData.npcID and data["weaponmasters"][nodeData.npcID] then
+				for skill in data["weaponmasters"][nodeData.npcID]:gmatch("([^,]+)") do
+					skill = tonumber(skill)
+					tooltip:AddLine(data["weaponskills"][skill].name)
+				end
+			end
+		end
+		tooltip:Show()
 		return
 	end
-	
-	local tooltip = self:GetParent() == WorldMapButton and WorldMapTooltip or GameTooltip
-	if ( self:GetCenter() > UIParent:GetCenter() ) then -- compare X coordinate
-		tooltip:SetOwner(self, "ANCHOR_LEFT")
-	else
-		tooltip:SetOwner(self, "ANCHOR_RIGHT")
-	end
-
-    if (not nodeData.name) then return end
-	tooltip:AddLine(nodeData.name)
-	if (nodeData.description) then
-		tooltip:AddLine(nodeData.description, 0, 0.6, 0.1)
-	end
-	tooltip:Show()
 end
 
 function pluginHandler:OnLeave(mapFile, coord)
+	if self.tooltip then
+		LibQTip:Release(self.tooltip)
+		self.tooltip = nil
+		return
+	end
 	if self:GetParent() == WorldMapButton then
 		WorldMapTooltip:Hide()
 	else
@@ -86,11 +134,14 @@ do
 	local tablepool = setmetatable({}, {__mode = 'k'})
 
 	local function iter(t, prestate)
+		local vendors = {
+			ammo = db.showAmmoVendors,
+		}
 		if not t then return end
 		local data = t.data
 
 		local state, value = next(data, prestate)
-
+		
 		while(state) do
 			if value then
 				-- "Do you think God stays in heaven because he, too, lives in fear of what he's created here on earth?"
@@ -99,24 +150,49 @@ do
 				if not (value.category == "flightmasters") or db.showFlightMasters and (not value.classes or value.classes[class]) then
 				if not (value.category == "guildmasters") or db.showGuildMasters then
 				if not (value.category == "rares") or db.showRares then
-				if not (value.subcategory == "weaponmaster") or db.showWeaponMasters then
+				if not (value.subcatogories and value.subcategories["weaponmaster"]) or db.showWeaponMasters then
 				if not (value.category == "spirithealers") or db.showSpiritHealers then
-				if not (value.category == "vendors") or ((db.showReagentVendors and value.subcategory == "reagentvendor") or (db.showPoisonVendors and value.subcategory == "poisonvendor") or (db.showMisc and value.subcategory == nil)) then
-				if not (value.category == "repair") or db.showRepair then
+				if not (value.category == "vendors") or ((db.showAmmoVendors and (value.vendors and value.vendors['ammo'])) or (db.showReagentVendors and (value.subcategories and value.subcategories["reagent"])) or (db.showPoisonVendors and (value.subcategories and value.subcategories["poison"])) or (db.showMisc)) then
+				if not (value.category == "repair") or ((db.showAmmoVendors and (value.vendors and value.vendors['ammo'])) or db.showRepair) then
 				if not (value.category == "auctioneers") or db.showAuctioneers then
 				if not (value.category == "bankers") or db.showBankers then
 				if not (value.category == "innkeepers") or db.showInnkeepers then
 				if not (value.category == "mailboxes") or db.showMailboxes then
 				if not (value.category == "stablemasters") or class == "HUNTER" then -- Hide stablemasters for non-hunters
 				if not (value.category == "trainers" and value.description == "Pet Trainer") or class == "HUNTER" or db.showClassTrainers == "ALL" then -- Hide pet trainers for non-hunters
-				if not (value.category == "trainers" and value.subcategory == "classTrainer") or ((db.showClassTrainers == "ALL") or (db.showClassTrainers == "MINE" and value.classes and value.classes[class])) then
-				if not value.profession or ((db.showProfessions == "ALL") or (db.showProfessions == "MINE" and professions[value.profession])) then
+				if not (value.category == "trainers" and value.subcategories and value.subcategories["classTrainer"]) or ((db.showClassTrainers == "ALL") or (db.showClassTrainers == "MINE" and value.classes and value.classes[class])) then
+				if not (value.category == "primaryProfession" or value.category == "secondaryProfession") or ((db.showProfessions == "ALL") or (db.showProfessions == "MINE" and professions[value.profession])) then
+					-- TODO merge subcategory and subcategories
+					-- TODO Maybe unmerge them again; I've made this worse
+					
+					local icon = icons[value.category] or iconDefault
+					if value.category == "vendors" and value.subcategories then
+						if db.showReagentVendors and value.subcategories['reagent'] then
+							icon = icons['reagent']
+						elseif db.showPoisonVendors and value.subcategories['poison'] then
+							icon = icons['poison']
+						end
+					end
 
-					local icon = icons[value.subcategory] or icons[value.category] or iconDefault
+					if (value.category == "vendors" or value.category == "repair") then
+						if db.vendorsUseProfessionIcons and value.profession then
+							--local i = next(value.subcategories)
+							icon = icons[value.profession]
+						end
+						-- The whole point of this was to allow the player to further filter the vendors based on sold items
+						-- but I don't like this
+						for k, v in pairs(vendors) do
+							if v and value.vendors and value.vendors[k] then
+								icon = icons[k]
+							end
+						end
+					end
+
+						
 					if value.category == "flightmasters" and db.undiscoveredFlightmasters and not (value.classes and value.classes[class]) then
 						icon = learned[value.fpName] and icons[value.category] or icons["flightmastersUndiscovered"]
 					end
-					--if (icon == iconDefault) then print(value.subcategory, value.category) end
+
 					return state, nil, icon, db.zoneScale, db.zoneAlpha
 				end
 				end
@@ -145,7 +221,10 @@ do
 
 	local function iterCont(t, prestate)
 		if not t then return end
-		if not db.continent then return end
+		if not db.continent and not db.alwaysShowFlightmastersOnContinent then return end
+		local vendors = {
+			ammo = db.showAmmoVendors,
+		}
 		local zone = t.C[t.Z]
 		local data = nodes[zone]
 		local state, value
@@ -154,14 +233,15 @@ do
 				state, value = next(data, prestate)
 				while state do -- Have we reached the end of this zone?
 					if db.show then
+					if db.continent or (db.alwaysShowFlightmastersOnContinent and value.category == "flightmasters") then
 					if (value.faction == faction or value.faction == "Neutral") and (not value.hideOnContinent or zone == t.contId) then -- Show on continent?
 					if not (value.category == "flightmasters") or db.showFlightMasters and (not value.classes or value.classes[class]) then
 					if not (value.category == "guildmasters") or db.showGuildMasters then
 					if not (value.category == "rares") or db.showRares then
 					if not (value.subcategory == "weaponmaster") or db.showWeaponMasters then
 					if not (value.category == "spirithealers") or db.showSpiritHealers then
-					if not (value.category == "vendors") or ((db.showReagentVendors and value.subcategory == "reagentvendor") or (db.showPoisonVendors and value.subcategory == "poisonvendor") or (db.showMisc and value.subcategory == nil)) then
-					if not (value.category == "repair") or db.showRepair then
+					if not (value.category == "vendors") or ((db.showAmmoVendors and (value.vendors and value.vendors['ammo'])) or (db.showReagentVendors and (value.subcategories and value.subcategories["reagent"])) or (db.showPoisonVendors and (value.subcategories and value.subcategories["poison"])) or (db.showMisc)) then
+					if not (value.category == "repair") or ((db.showAmmoVendors and (value.vendors and value.vendors['ammo'])) or db.showRepair) then
 					if not (value.category == "auctioneers") or db.showAuctioneers then
 					if not (value.category == "bankers") or db.showBankers then
 					if not (value.category == "innkeepers") or db.showInnkeepers then
@@ -169,13 +249,35 @@ do
 					if not (value.category == "stablemasters") or class == "HUNTER" then -- Hide stablemasters for non-hunters
 					if not (value.category == "trainers" and value.description == "Pet Trainer") or class == "HUNTER" or db.showClassTrainers == "ALL" then -- Hide pet trainers for non-hunters
 					if not (value.category == "trainers" and value.subcategory == "classTrainer") or ((db.showClassTrainers == "ALL") or (db.showClassTrainers == "MINE" and value.classes and value.classes[class])) then
-					if not value.profession or ((db.showProfessions == "ALL") or (db.showProfessions == "MINE" and professions[value.profession])) then
-						local icon = icons[value.subcategory] or icons[value.category] or iconDefault
+					if not (value.category == "primaryProfession" or value.category == "secondaryProfession") or ((db.showProfessions == "ALL") or (db.showProfessions == "MINE" and professions[value.profession])) then
+						
+					local icon = icons[value.category] or iconDefault
+						if value.category == "vendors" and value.subcategories then
+							if db.showReagentVendors and value.subcategories['reagent'] then
+								icon = icons['reagent']
+							elseif db.showPoisonVendors and value.subcategories['poison'] then
+								icon = icons['poison']
+							end
+						end
+
+						if (value.category == "vendors" or value.category == "repair") then
+							if db.vendorsUseProfessionIcons and value.profession then
+								--local i = next(value.subcategories)
+								icon = icons[value.profession]
+							end
+						-- The whole point of this was to allow the player to further filter the vendors based on sold items
+						-- but I don't like this
+							for k, v in pairs(vendors) do
+								if v and value.vendors and value.vendors[k] then
+									icon = icons[k]
+								end
+							end
+						end
 						if value.category == "flightmasters" and db.undiscoveredFlightmasters and not (value.classes and value.classes[class]) then
 							icon = learned[value.fpName] and icons[value.category] or icons["flightmastersUndiscovered"]
 						end
-						--if (icon == iconDefault) then print(value.subcategory, value.category) end
 						return state, zone, icon, db.continentScale, db.continentAlpha
+					end
 					end
 					end
 					end
@@ -234,8 +336,12 @@ local waypoints = {}
 local function setWaypoint(mapFile, coord)
 	if not TomTom then return end
 	local x, y = HandyNotes:getXY(coord)
+	title = nodes[mapFile][coord].name
+	if nodes[mapFile][coord].description then
+		title = title .. '\n' .. nodes[mapFile][coord].description
+	end
 	TomTom:AddWaypoint(mapFile, x, y, {
-		title = nodes[mapFile][coord].name,
+		title = title,
 		persistent = nil,
 		minimap = true,
 		world = true
@@ -245,6 +351,10 @@ end
 function pluginHandler:OnClick(button, pressed, mapFile, coord)
 	if (not pressed) then return end
  --print(button, pressed, mapFile, coord)
+	if (button == "MiddleButton" and Search and nodes[mapFile][coord].npcID) then
+		Search:DumpVendorItems(nodes[mapFile][coord].npcID, nodes[mapFile][coord].name)
+		Search:ShowWindow(true)
+	end
 	if (button == "RightButton" and db.tomtom and TomTom) then
 		setWaypoint(mapFile, coord)
 		return
@@ -259,6 +369,9 @@ local defaults = {
 		continentAlpha = 1,
 		continent = false,
 		tomtom = true,
+		showAltRecipes = false,
+		showVendorData = false,
+		vendorsUseProfessionIcons = false,
 		showInnkeepers = false,
 		showMailboxes = false,
 		showBankers = false,
@@ -272,17 +385,18 @@ local defaults = {
 		showMisc = false,
 		showReagentVendors = false,
 		showPoisonVendors = false,
+		showAmmoVendors = false,
 		showRares = false,
 		showFlightMasters = true,
-		undiscoveredFlightmasters = false,
 		alwaysShowFlightmastersOnContinent = true,
+		undiscoveredFlightmasters = true,
 		show = true, -- Controls visibility of all nodes
 		mapButton = false,
 		minimapButton = { -- for LibDBIcon
 			hide = false,
 		},
 		button = {
-			x = -40,
+			x = 40,
 			y = -30,
 		},
 	},
@@ -293,25 +407,36 @@ local defaults = {
 	}
 }
 
-local Addon = CreateFrame("Frame")
-Addon:RegisterEvent("PLAYER_LOGIN")
-Addon:RegisterEvent("SKILL_LINES_CHANGED")
-Addon:RegisterEvent("TAXIMAP_OPENED")
-Addon:SetScript("OnEvent", function(self, event, ...) return self[event](self, ...) end)
-local function updateStuff()
+function Addon:OnInitialize()
+	self.db = LibStub("AceDB-3.0"):New("HandyNotes_NPCsClassicDB", defaults, true)
+	db = self.db.profile
+	learned = self.db.char.learned
+
+	Addon:RegisterEvent("PLAYER_LOGIN")
+	Addon:RegisterEvent("SKILL_LINES_CHANGED")
+	Addon:RegisterEvent("TAXIMAP_OPENED")
+	Search = Addon:GetModule("Search")
+	AltRecipes = Addon:GetModule("AltRecipes")
+	self.PROFESSIONS = PROFESSIONS -- For sub modules
+	self.professions = professions
+end
+
+function Addon:updateStuff()
 	HandyNotes:SendMessage("HandyNotes_NotifyUpdate", "HandyNotes_NPCs")
 end
 
 function Addon:PLAYER_ENTERING_WORLD()
 	faction = UnitFactionGroup("player")
+	data["faction"] = faction
 	_, class = UnitClass("player")
-	updateStuff()
+	data["class"] = class
+	self:updateStuff()
 end
 
 function Addon:PLAYER_LOGIN()
  local options = {
  type = "group",
- name = L["NPCs"],
+ name = "NPCs",
  desc = L["Locations of various npcs"],
  get = function(info) return db[info[#info]] end,
  set = function(info, v) db[info[#info]] = v Addon:CheckSettings() HandyNotes:SendMessage("HandyNotes_NotifyUpdate", "HandyNotes_NPCs") end,
@@ -332,6 +457,12 @@ function Addon:PLAYER_LOGIN()
 	type = "header",
 	name = L["These settings control the look and feel of the icon."],
 	order = 1.1,
+  },
+  vendorsUseProfessionIcons = {
+	type = "toggle",
+	name = L["Vendor Profession Icon"],
+	desc = L["Use profession icons for specialty vendors"],
+	order = 1.11,
   },
   zoneScale = {
    type = "range",
@@ -378,6 +509,18 @@ function Addon:PLAYER_LOGIN()
    name = L["Enable TomTom integration"],
    desc = L["Allow right click to create waypoints with TomTom"],
    order = 1.1,
+  },
+  showAltRecipes = {
+	type = "toggle",
+	name = L["Show Alt Recipes"],
+	desc = L["Show which alts can learn a recipe in the item's tooltip"],
+	order = 1.09,
+  },
+  showVendorData = {
+	type = "toggle",
+	name = L["Advanced Vendor Tooltip"],
+	desc = L["Show items sold by vendor in tooltip"],
+	order = 1.101,
   },
   showHeader = {
 	type = "header",
@@ -446,24 +589,24 @@ function Addon:PLAYER_LOGIN()
   showFlightMastersHeader = {
 	name = L["Flight Masters"],
 	type = "header",
-	order = 3.9
+	order = 3.9,
   },
   showFlightMasters = {
 	name = L["Show Flight Masters"],
 	type = "toggle",
-	order = 3.91
+	order = 3.91,
   },
   undiscoveredFlightmasters = {
 	name = L["Show Undiscovered"],
 	desc = L["Use a different icon for undiscovered flightmasters"],
 	type = "toggle",
-	order = 3.92
+	order = 3.92,
   },
   alwaysShowFlightmastersOnContinent = {
 	name = L["Always Show on Continent"],
 	desc = L["Show flightmasters on continent even if you disabled \"Show on Continent\"."],
 	type = "toggle",
-	order = 3.92
+	order = 3.93,
   },
   showVendorsHeader = {
 	name = L["Show Vendors"],
@@ -474,7 +617,7 @@ function Addon:PLAYER_LOGIN()
 	name = L["Misc. Vendors"],
 	type = "toggle",
 	desc= L["Catch-all for uncategorized vendors"],
-	order = 4.1
+	order = 4.1,
   },
   showReagentVendors = {
 	name = L["Reagent Vendors"],
@@ -486,20 +629,23 @@ function Addon:PLAYER_LOGIN()
 	type = "toggle",
 	order = 4.3,
   },
+   showAmmoVendors = {
+	name = L["Ammo Vendors"],
+	type = "toggle",
+	order = 4.35,
+  },
   resetMapButton = {
 	name = L["Reset Map Button"],
 	desc = L["Places button back in default position"],
 	type = "execute",
 	order = 10,
-	func = function() db.button.x = -40 db.button.y = -30 self.button:ClearAllPoints() self.button:SetPoint("TOPRIGHT", WorldMapFrame, "TOPRIGHT", db.button.x, db.button.y)end,
+	func = function() db.button.x = 40 db.button.y = -30 self.button:ClearAllPoints() self.button:SetPoint("TOPLEFT", WorldMapFrame, "TOPLEFT", db.button.x, db.button.y)end,
   },
  },
 }
 
  HandyNotes:RegisterPluginDB("HandyNotes_NPCs", pluginHandler, options)
- self.db = LibStub("AceDB-3.0"):New("HandyNotes_NPCsClassicDB", defaults, true)
- db = self.db.profile
- learned = self.db.char.learned
+
  
  local button = CreateFrame("Button", nil, WorldMapFrame, "UIPanelButtonTemplate")
  button:SetMovable(true)
@@ -510,7 +656,7 @@ function Addon:PLAYER_LOGIN()
  button:SetScript("OnDragStop", function(self, button) Addon:DragStop(self, button) end)
  button:SetSize(50, 30)
  button:SetText("NPCs")
- button:SetPoint("TOPRIGHT", WorldMapFrame, "TOPRIGHT", db.button.x, db.button.y)
+ button:SetPoint("TOPLEFT", WorldMapFrame, "TOPLEFT", db.button.x, db.button.y)
  button:SetFrameStrata("FULLSCREEN_DIALOG")
  self.button = button
  if db.mapButton then
@@ -519,10 +665,10 @@ else
 	button:Hide()
 end
  
- local dropDownMenu = L_Create_UIDropDownMenu("HandyNotes_NPCsDropDownMenu", button)
- L_UIDropDownMenu_Initialize(dropDownMenu, HandyNotes_NPCsDropDownMenu, "MENU")
- button:SetScript("OnClick", function() L_ToggleDropDownMenu(1, nil, dropDownMenu, "cursor", 3, -3) end)
- button:SetScript("OnHide", function() L_CloseDropDownMenus() end)
+	local dropDownMenu = L_Create_UIDropDownMenu("HandyNotes_NPCsDropDownMenu", button)
+	L_UIDropDownMenu_Initialize(dropDownMenu, HandyNotes_NPCsDropDownMenu, "MENU")
+	button:SetScript("OnClick", function() L_ToggleDropDownMenu(1, nil, dropDownMenu, "cursor", 3, -3) end)
+	button:SetScript("OnHide", function() L_CloseDropDownMenus() end)
  
 	self.LDB = LibStub:GetLibrary("LibDataBroker-1.1"):NewDataObject("HandyNotes_NPCs", {
 		type = "launcher",
@@ -532,14 +678,18 @@ end
 		if (button == "LeftButton") then
 			L_ToggleDropDownMenu(1, nil, dropDownMenu, "cursor", 3, -3)
 		elseif (button == "RightButton") then
+			if data["searchWindow"] then
+				local w = data["searchWindow"]
+				if w:IsVisible() then w:Hide() else w:Show() end
+			end
 		end
 	end,
 	})
 	self.minimapButton = LibStub("LibDBIcon-1.0")
 	self.minimapButton:Register("HandyNotes_NPCs", self.LDB, db.minimapButton)
- 
- Addon:RegisterEvent("PLAYER_ENTERING_WORLD")
- Addon:UnregisterEvent("PLAYER_LOGIN") -- Probably Not Needed
+
+	self:RegisterEvent("PLAYER_ENTERING_WORLD")
+	self:UnregisterEvent("PLAYER_LOGIN") -- Probably Not Needed
 end
 
 function Addon:SKILL_LINES_CHANGED()
@@ -547,18 +697,22 @@ function Addon:SKILL_LINES_CHANGED()
 	for i = 1, GetNumSkillLines() do
 		local skillName = GetSkillLineInfo(i)
 		if PROFESSIONS[skillName] then
-			--print('Added', skillName)
-			professions[skillName] = true
+			professions[PROFESSIONS[skillName]] = true
 		end
+		--[[for k, v in pairs(data["weaponskills"]) do Weapon skills learned have slightly different name, for instance one-handed maces to maces
+			if v.name == skillName then
+				data.weaponSkillLearned[k] = true
+			end
+		end--]]
 	end
-	updateStuff()
+	self:updateStuff()
 end
 
 function Addon:TAXIMAP_OPENED()
 	for i = 1, NumTaxiNodes() do
 		self.db.char.learned[TaxiNodeName(i)] = true
 	end
-	updateStuff()
+	self:updateStuff()
 end
 
 function HandyNotes_NPCsDropDownMenu_OnClick(self, arg1, arg2, checked)
@@ -650,6 +804,7 @@ function HandyNotes_NPCsDropDownMenu(frame, level, menuList)
 				showMisc = L["Misc. Vendors"],
 				showReagentVendors = L["Reagent Vendors"],
 				showPoisonVendors = L["Poison Vendors"],
+				showAmmoVendors = L["Ammo Vendors"],
 			},
 			flightmasters = {
 				showFlightMasters = L["Show Flight Masters"],
@@ -678,11 +833,12 @@ function Addon:CheckSettings()
 	else
 		self.button:Hide()
 	end
+	AltRecipes:Toggle()
 end
 
 local xB = 0
 local yB = 0
-function Addon:DragStart(frame, button) -- Copied from BartrubySummonPet
+function Addon:DragStart(frame, button) -- Copied from BartrubySummonPet, button seems to jump a little when done moving; FIX ME
  if (button == "LeftButton" and IsShiftKeyDown() and not frame.isMoving) then
   frame.isMoving = true
   frame:StartMoving()
