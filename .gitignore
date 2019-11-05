@@ -3,10 +3,11 @@
 
 # except
 !Fonts/**
-!Interface/
-!Interface/**/*
 !.gitignore
 !README.md
+!install.sh
+!Packages/
+!Packages/**/*
 
 # Ignore macOS
 **/.DS_Store

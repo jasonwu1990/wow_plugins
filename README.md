@@ -1,32 +1,15 @@
 # wow_plugins
 
-## Just clone it into \_classic\_ folder
+## How To Use
 
+Run `install.sh` in the directory
 
-### AtlasLootClassic
+then clone `Interface` into your `{Your WOW installed folder}/_classic_`  folder, recover it if already exits. and  also for `Fonts` 
 
-副本掉落装备查看插件
+## Packages
 
-### QuickCompare
+`bigfoot.zip`: all addons from bigfoot https://bbs.nga.cn/read.php?tid=18302645&rand=721
 
-装备比较插件
+`Questie.zip`: Quest Tracker https://github.com/AeroScripts/QuestieDev
 
-### HandyNotes
-
-NPC位置提示
-
-### AttackTimer
-
-近战武器攻击条
-
-### Combuctor
-
-背包整合
-
-### Seller Helper
-
-贩卖助手
-
-### Repair Help
-
-修理助手
+`QuestLogEx.zip`: Extended Quest Log https://www.warcrafttavern.com/addons/questlogex/ or https://www.wowinterface.com/downloads/fileinfo.php?id=24980
