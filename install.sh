@@ -1,5 +1,8 @@
 #!/bin/bash
 
+echo "Deleting ./Interface"
+rm -r ./Interface
+
 mkdir -p ./Interface/AddOns/
 
 echo "Installing bigfoot plugins"
