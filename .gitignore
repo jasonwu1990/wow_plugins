@@ -4,6 +4,7 @@
 # except
 !Fonts/**
 !.gitignore
+!.gitattributes
 !README.md
 !install.sh
 !Packages/
